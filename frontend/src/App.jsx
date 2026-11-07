@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 const SEV = { Critical: "sev-critical", High: "sev-high", Medium: "sev-medium", Low: "sev-low" };
+const API_URL = import.meta.env.VITE_API_URL;
 
 function Highlighted({ content, findings }) {
   const spans = findings.map((f, i) => ({ ...f.location, i })).sort((a, b) => a.start - b.start);
@@ -23,25 +24,33 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const loadDocs = () => fetch("/api/guidelines").then((r) => r.json()).then(setDocs);
+ const loadDocs = () =>
+  fetch(`${API_URL}/api/guidelines`)
+    .then((r) => {
+      if (!r.ok) throw new Error("Failed to load guidelines");
+      return r.json();
+    })
+    .then(setDocs);
   useEffect(() => { loadDocs(); }, []);
 
   async function upload(e) {
     const f = e.target.files[0]; if (!f) return;
     setBusy(true); setError("");
     const fd = new FormData(); fd.append("file", f);
-    const r = await fetch("/api/guidelines", { method: "POST", body: fd });
+    const r = await fetch(`${API_URL}/api/guidelines`, {method: "POST",body: fd});
     if (!r.ok) setError("Upload failed"); 
     await loadDocs(); setBusy(false); e.target.value = "";
   }
 
-  async function remove(id) { await fetch(`/api/guidelines/${id}`, { method: "DELETE" }); loadDocs(); }
+  async function remove(id) {
+  await fetch(`${API_URL}/api/guidelines/${id}`, {method: "DELETE"});
+  loadDocs();}
 
   async function check() {
     setBusy(true); setError(""); setResult(null);
     const fd = new FormData();
     if (file) fd.append("file", file); else fd.append("text", text);
-    const r = await fetch("/api/analyze", { method: "POST", body: fd });
+    const r = await fetch(`${API_URL}/api/analyze`, {method: "POST",body: fd});
     const data = await r.json();
     if (!r.ok) setError(data.detail || "Check failed"); else setResult(data);
     setBusy(false);
