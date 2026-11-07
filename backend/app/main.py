@@ -16,7 +16,7 @@ app = FastAPI(title="BrandGuard API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173","https://brand-guard-ai-zeta.vercel.app","https://brand-guard-d62oql1hp-theekshanmaari-5329.vercel.app"],
+    allow_origins=["http://localhost:5173","https://brand-guard-2tefr9orl-theekshanmaari-5329.vercel.app","https://brand-guard-ai-zeta.vercel.app","https://brand-guard-d62oql1hp-theekshanmaari-5329.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
