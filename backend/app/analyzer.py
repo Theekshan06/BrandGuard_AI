@@ -4,7 +4,26 @@ import re
 from google import genai
 from google.genai import types
 from .config import GEMINI_API_KEY, LLM_MODEL
-from .rag import search
+def _retrieve(content: str, max_chunks: int = 12) -> list[dict]:
+    from .rag import search
+
+    parts = [
+        p.strip()
+        for p in re.split(r"\n\s*\n|(?<=[.!?])\s+", content)
+        if len(p.strip()) > 25
+    ][:40]
+
+    best: dict[str, dict] = {}
+
+    for part in parts or [content[:500]]:
+        for hit in search(part, k=3):
+            if hit["id"] not in best or hit["distance"] < best[hit["id"]]["distance"]:
+                best[hit["id"]] = hit
+
+    return sorted(
+        best.values(),
+        key=lambda h: h["distance"]
+    )[:max_chunks]
 
 SYSTEM = """You are a brand compliance reviewer. You receive CONTENT and numbered GUIDELINE excerpts.
 Find every claim or passage in CONTENT that violates a guideline. Only use the given guidelines as the
