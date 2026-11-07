@@ -11,8 +11,10 @@ from .config import GEMINI_API_KEY, LLM_MODEL
 
 
 def _retrieve(content: str, max_chunks: int = 12) -> list[dict]:
-    # Lazy import to reduce unnecessary startup memory usage
     from .rag import search
+
+    print("\n[ANALYZER] Starting guideline retrieval")
+    print("[ANALYZER] Content length:", len(content))
 
     parts = [
         p.strip()
@@ -20,18 +22,35 @@ def _retrieve(content: str, max_chunks: int = 12) -> list[dict]:
         if len(p.strip()) > 25
     ][:40]
 
+    if not parts and content.strip():
+        parts = [content[:500]]
+
+    print("[ANALYZER] Search queries:", len(parts))
+
     best: dict[str, dict] = {}
 
-    for part in parts or [content[:500]]:
-        for hit in search(part, k=3):
-            if hit["id"] not in best or hit["distance"] < best[hit["id"]]["distance"]:
+    for i, part in enumerate(parts):
+        print(f"[ANALYZER] Searching part {i + 1}/{len(parts)}")
+
+        hits = search(part, k=3)
+
+        print(f"[ANALYZER] Retrieved hits: {len(hits)}")
+
+        for hit in hits:
+            if (
+                hit["id"] not in best
+                or hit["distance"] < best[hit["id"]]["distance"]
+            ):
                 best[hit["id"]] = hit
 
-    return sorted(
+    results = sorted(
         best.values(),
         key=lambda h: h["distance"]
     )[:max_chunks]
 
+    print("[ANALYZER] Final retrieved chunks:", len(results))
+
+    return results
 
 SYSTEM = """You are a brand compliance reviewer. You receive CONTENT and numbered GUIDELINE excerpts.
 Find every claim or passage in CONTENT that violates a guideline. Only use the given guidelines as the
@@ -68,7 +87,8 @@ def analyze(content_pages: list[dict]) -> dict:
 
     if not chunks:
         raise RuntimeError(
-            "Knowledge Hub is empty. Upload a brand guideline document first."
+            "No guideline chunks were retrieved. "
+        "Check the uploaded document, analyzed content, and ChromaDB retrieval logs."
         )
 
     gmap = {f"G{i+1}": c for i, c in enumerate(chunks)}
