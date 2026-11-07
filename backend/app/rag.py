@@ -16,7 +16,6 @@ EMBEDDING_DIMENSIONS = 768
 
 
 def _get_collection():
-    """Initialize and return the persistent ChromaDB collection."""
     global _client, _collection
 
     if _collection is None:
@@ -26,16 +25,36 @@ def _get_collection():
 
         _client = chromadb.PersistentClient(path=CHROMA_DIR)
 
-        _collection = _client.get_or_create_collection(
-            name=COLLECTION_NAME,
-            metadata={"hnsw:space": "cosine"}
-        )
+        try:
+            # First, try to retrieve the existing collection.
+            _collection = _client.get_collection(
+                name=COLLECTION_NAME
+            )
+
+        except Exception:
+            try:
+                # Create only if it does not exist.
+                _collection = _client.create_collection(
+                    name=COLLECTION_NAME,
+                    metadata={"hnsw:space": "cosine"}
+                )
+
+            except Exception as create_error:
+                # Another request may have created it meanwhile.
+                if (
+                    "already exists" in str(create_error).lower()
+                    or "uniqueconstrainterror" in str(create_error).lower()
+                ):
+                    _collection = _client.get_collection(
+                        name=COLLECTION_NAME
+                    )
+                else:
+                    raise
 
         print(f"[RAG] Collection: {COLLECTION_NAME}")
         print(f"[RAG] Existing chunks: {_collection.count()}")
 
     return _collection
-
 
 def _get_genai_client():
     """Initialize Gemini client only when embeddings are needed."""
