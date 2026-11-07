@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 const SEV = { Critical: "sev-critical", High: "sev-high", Medium: "sev-medium", Low: "sev-low" };
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = "https://brandguard-ai-vkig.onrender.com";
 
 function Highlighted({ content, findings }) {
   const spans = findings.map((f, i) => ({ ...f.location, i })).sort((a, b) => a.start - b.start);
